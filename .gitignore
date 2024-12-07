@@ -76,3 +76,9 @@ fabric.properties
 
 # *.iml
 # modules.xml
+
+**/.idea
+**/.mvn
+**/target
+
+
