@@ -29,7 +29,7 @@ public class App {
 
             while (matcher.find()) {
                 String op = matcher.group();
-                Long[] nums = Arrays.stream(op.substring(4, op.length() - 1).split(",")).map(Long::parseLong).toArray(Long[]::new);
+                Integer[] nums = Arrays.stream(op.substring(4, op.length() - 1).split(",")).map(Integer::parseInt).toArray(Integer[]::new);
                 result += nums[0] * nums[1];
             }
         }
@@ -52,7 +52,7 @@ public class App {
                 String op = matcher.group();
                 if (op.startsWith("mul")) {
                     if (!active) continue;
-                    Long[] nums = Arrays.stream(op.substring(4, op.length() - 1).split(",")).map(Long::parseLong).toArray(Long[]::new);
+                    Integer[] nums = Arrays.stream(op.substring(4, op.length() - 1).split(",")).map(Integer::parseInt).toArray(Integer[]::new);
                     result += nums[0] * nums[1];
                 } else if (op.startsWith("don't")) {
                     active = false;
