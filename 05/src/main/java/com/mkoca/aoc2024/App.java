@@ -15,8 +15,8 @@ public class App {
         Map<String, Node> nodes = new HashMap<>();
         List<ArrayList<String>> reports = new ArrayList<>();
         List<ArrayList<String>> badReports = new ArrayList<>();
-
         readFile(nodes, reports);
+        // printDependencyList(nodes);
 
         part1(nodes, reports, badReports);
         part2(nodes, reports, badReports);
@@ -37,8 +37,6 @@ public class App {
     }
 
     public static void part2(Map<String, Node> nodes, List<ArrayList<String>> reports, List<ArrayList<String>> badReports) {
-        // printDependencyList(nodes);
-
         long res = 0;
         for (var badReport : badReports) {
             List<String> reordered = reorder(nodes, badReport);
