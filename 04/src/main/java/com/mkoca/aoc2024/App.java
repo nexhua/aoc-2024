@@ -24,7 +24,6 @@ public class App {
         Set<String> matches = new HashSet<>();
         List<String> lines = readFile();
 
-        System.out.println("Horizontal");
         // horizontal
         for (int i = 0; i < lines.size(); i++) {
             String s = lines.get(i);
@@ -33,12 +32,11 @@ public class App {
 
                 if (sub.equals(XMAS) || sub.equals(SAMX)) {
                     matches.add(format(i, j, i, j + 4));
-                    System.out.printf("%s - %s\n", format(i, j, i, j + 4), sub);
+                    // System.out.printf("%s - %s\n", format(i, j, i, j + 4), sub);
                 }
             }
         }
 
-        System.out.println("Vertical");
         // vertical
         for (int i = 0; i <= lines.size() - 4; i++) {
             for (int j = 0; j < lines.get(i).length(); j++) {
@@ -46,12 +44,11 @@ public class App {
 
                 if (slice.equals(XMAS) || slice.equals(SAMX)) {
                     matches.add(format(i, j, i + 4, j));
-                    System.out.printf("%s - %s\n", format(i, j, i + 4, j), slice);
+                    // System.out.printf("%s - %s\n", format(i, j, i + 4, j), slice);
                 }
             }
         }
 
-        System.out.println("Diagonal");
         // diagonal
         for (int i = 0; i <= lines.size() - 4; i++) {
             for (int j = 0; j <= lines.get(i).length() - 4; j++) {
@@ -94,7 +91,7 @@ public class App {
         }
 
         if (XMAS.contentEquals(crossLeft) || SAMX.contentEquals(crossLeft)) {
-            System.out.printf("%s - %s\n", format(x1, y1, x1 + 4, y1 + 4), crossLeft);
+            // System.out.printf("%s - %s\n", format(x1, y1, x1 + 4, y1 + 4), crossLeft);
             matches.add(format(x1, y1, x1 + 4, y1 + 4));
         }
 
@@ -106,7 +103,7 @@ public class App {
         }
 
         if (XMAS.contentEquals(crossRight) || SAMX.contentEquals(crossRight)) {
-            System.out.printf("%s - %s\n", format(x1, y1 + 4, x1 + 4, y1), crossRight);
+            // System.out.printf("%s - %s\n", format(x1, y1 + 4, x1 + 4, y1), crossRight);
             matches.add(format(x1, y1 + 4, x1 + 4, y1));
         }
     }
