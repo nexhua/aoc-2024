@@ -19,7 +19,6 @@ public class App {
         readFile(nodes, reports);
 
         part1(nodes, reports, badReports);
-        resetNodes(nodes);
         part2(nodes, reports, badReports);
     }
 
