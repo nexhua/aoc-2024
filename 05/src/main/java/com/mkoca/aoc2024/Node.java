@@ -52,6 +52,11 @@ public class Node implements Cloneable {
 
     //endregion
 
+    public boolean isEligible() {
+        if (this.dependencies.isEmpty()) return true;
+        return this.dependencies.stream().filter(Node::isPartOfReport).allMatch(Node::isVisited);
+    }
+
     @Override
     public String toString() {
         return this.value;

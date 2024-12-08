@@ -13,25 +13,17 @@ public class App {
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
-
 
     public static void part1() {
         Map<String, Node> nodes = new HashMap<>();
         List<ArrayList<String>> reports = new ArrayList<>();
         readFile(nodes, reports);
 
-
-        for (var node : nodes.values()) {
-            System.out.printf("%s -> (%s)\n", node.getValue(), node.getDependencies().stream().map(Object::toString).collect(Collectors.joining(", ")));
-        }
-
-
         long res = 0;
         for (var report : reports) {
-            resetNodes(nodes);
             boolean passed = checkReport(nodes, report);
-            System.out.printf("%s -> %s\n", report, passed ? "passed" : "failed");
             if (passed) {
                 res += Long.parseLong(report.get(report.size() / 2));
             }
@@ -40,7 +32,71 @@ public class App {
         System.out.println("Part 1: " + res);
     }
 
+    public static void part2() {
+        Map<String, Node> nodes = new HashMap<>();
+        List<ArrayList<String>> reports = new ArrayList<>();
+        List<ArrayList<String>> badReports = new ArrayList<>();
+        readFile(nodes, reports);
+
+        // printDependencyList(nodes);
+
+        for (var report : reports) {
+            // accumulate part 1 failures
+            boolean passed = checkReport(nodes, report);
+            if (!passed) {
+                badReports.add(report);
+            }
+        }
+
+        // actual part 2 logic
+        long res = 0;
+        for (var badReport : badReports) {
+            List<String> reordered = reorder(nodes, badReport);
+            if (checkReport(nodes, reordered)) {
+                res += Long.parseLong(reordered.get(reordered.size() / 2));
+            } else {
+                System.out.println("Reordered actually not fixed! " + reordered);
+                break;
+            }
+
+        }
+
+        System.out.println("Part 2: " + res);
+    }
+
+    public static List<String> reorder(Map<String, Node> nodes, List<String> report) {
+        resetNodes(nodes);
+
+        List<String> reordered = new ArrayList<>();
+
+        //  mark current report nodes
+        for (var val : report) {
+            nodes.get(val).setPartOfReport(true);
+        }
+
+        int len = report.size();
+        while (len > 0) {
+            Optional<Node> candidate = report.stream().map(nodes::get).filter(n -> !n.isVisited()).filter(Node::isEligible).findFirst();
+
+            if (candidate.isPresent()) {
+                Node cur = candidate.get();
+                cur.setVisited(true);
+                reordered.add(cur.getValue());
+            } else {
+                System.out.println("ERROR - No candidate left");
+                break;
+            }
+            len--;
+        }
+
+        assert reordered.size() == report.size();
+
+        return reordered;
+    }
+
     public static boolean checkReport(Map<String, Node> nodes, List<String> report) {
+        resetNodes(nodes);
+
         for (var val : report) {
             nodes.get(val).setPartOfReport(true);
         }
@@ -51,9 +107,7 @@ public class App {
             Node cur = nodes.get(val);
             cur.setVisited(true);
 
-            boolean failed = cur.getDependencies().stream().filter(Node::isPartOfReport).filter(d -> !d.isVisited()).count() > 0;
-
-            if (failed) {
+            if (!cur.isEligible()) {
                 passed = false;
                 break;
             }
@@ -66,6 +120,12 @@ public class App {
         for (var node : nodes.values()) {
             node.setVisited(false);
             node.setPartOfReport(false);
+        }
+    }
+
+    public static void printDependencyList(Map<String, Node> nodes) {
+        for (var node : nodes.values()) {
+            System.out.printf("%s -> (%s)\n", node.getValue(), node.getDependencies().stream().map(Object::toString).collect(Collectors.joining(", ")));
         }
     }
 
