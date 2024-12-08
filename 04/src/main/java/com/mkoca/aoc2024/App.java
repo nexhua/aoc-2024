@@ -15,9 +15,12 @@ public class App {
 
     public static final String XMAS = "XMAS";
     public static final String SAMX = "SAMX";
+    public static final String SAM = "SAM";
+    public static final String MAS = "MAS";
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
 
     public static void part1() {
@@ -110,6 +113,34 @@ public class App {
 
     private static String format(int x1, int y1, int x2, int y2) {
         return String.format("(%d,%d)->(%d,%d)", x1, y1, x2, y2);
+    }
+
+    private static void part2() {
+        Set<String> matches = new HashSet<>();
+        List<String> lines = readFile();
+
+        int i, j;
+
+        for (i = 0; i <= lines.size() - SAM.length(); i++) {
+            for (j = 0; j <= lines.get(i).length() - SAM.length(); j++) {
+                StringBuilder crossLeft = new StringBuilder();
+                StringBuilder crossRight = new StringBuilder();
+
+                crossLeft.append(lines.get(i).charAt(j));
+                crossLeft.append(lines.get(i + 1).charAt(j + 1));
+                crossLeft.append(lines.get(i + 2).charAt(j + 2));
+
+                crossRight.append(lines.get(i).charAt(j + 2));
+                crossRight.append(lines.get(i + 1).charAt(j + 1));
+                crossRight.append(lines.get(i + 2).charAt(j));
+
+                if ((crossLeft.toString().contentEquals(SAM) || crossLeft.toString().contentEquals(MAS)) && (crossRight.toString().contentEquals(SAM) || crossRight.toString().contentEquals(MAS))) {
+                    matches.add(format(i, j, i + 2, j + 2));
+                }
+            }
+        }
+
+        System.out.println("Part 2: " + matches.size());
     }
 
     public static ArrayList<String> readFile() {
