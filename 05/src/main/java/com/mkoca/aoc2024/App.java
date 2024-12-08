@@ -12,43 +12,34 @@ public class App {
     public static final String FILE_NAME = "input.txt";
 
     public static void main(String[] args) {
-        part1();
-        part2();
-    }
-
-    public static void part1() {
         Map<String, Node> nodes = new HashMap<>();
         List<ArrayList<String>> reports = new ArrayList<>();
+        List<ArrayList<String>> badReports = new ArrayList<>();
+
         readFile(nodes, reports);
 
+        part1(nodes, reports, badReports);
+        resetNodes(nodes);
+        part2(nodes, reports, badReports);
+    }
+
+    public static void part1(Map<String, Node> nodes, List<ArrayList<String>> reports, List<ArrayList<String>> badReports) {
         long res = 0;
         for (var report : reports) {
             boolean passed = checkReport(nodes, report);
             if (passed) {
                 res += Long.parseLong(report.get(report.size() / 2));
+            } else {
+                badReports.add(report);
             }
         }
 
         System.out.println("Part 1: " + res);
     }
 
-    public static void part2() {
-        Map<String, Node> nodes = new HashMap<>();
-        List<ArrayList<String>> reports = new ArrayList<>();
-        List<ArrayList<String>> badReports = new ArrayList<>();
-        readFile(nodes, reports);
-
+    public static void part2(Map<String, Node> nodes, List<ArrayList<String>> reports, List<ArrayList<String>> badReports) {
         // printDependencyList(nodes);
 
-        for (var report : reports) {
-            // accumulate part 1 failures
-            boolean passed = checkReport(nodes, report);
-            if (!passed) {
-                badReports.add(report);
-            }
-        }
-
-        // actual part 2 logic
         long res = 0;
         for (var badReport : badReports) {
             List<String> reordered = reorder(nodes, badReport);
@@ -159,7 +150,7 @@ public class App {
                             // left does not exist, create and add to rights dependency list
                             left = new Node(newNodes[0]);
                             nodes.put(left.getValue(), left);
-                            right.getDependencies().add(new Node(newNodes[0]));
+                            right.getDependencies().add(left);
                         }
                     } else {
                         // right node does not exist
