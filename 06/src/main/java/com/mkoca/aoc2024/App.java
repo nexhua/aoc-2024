@@ -11,7 +11,11 @@ import java.util.List;
 import java.util.Set;
 
 public class App {
-    public static final String FILE_NAME = "sample.txt";
+    public static final String FILE_NAME = "sample2.txt";
+
+    public static Set<String> VISITED = new HashSet<>();
+    public static int[][] MAP;
+
 
     public static void main(String[] args) {
         part1();
@@ -35,8 +39,11 @@ public class App {
                 }
             }
         }
-        // printMap(map);
 
+        MAP = deepCopy(map);
+
+
+        // printMap(map);
         System.out.println("Part 1: " + res);
     }
 
@@ -46,9 +53,10 @@ public class App {
         int[] pos = {0, 0};
         int dir = 0;
         Set<String> resultSet = new HashSet<>();
+        Set<String> visited = new HashSet<>();
 
         initMap(map, pos, list);
-        runPathsPart2(resultSet, map, pos, dir);
+        runPathsPart2(resultSet, map, pos, dir, visited);
 
         System.out.println("Results");
         for (var resultPos : resultSet) {
@@ -57,89 +65,6 @@ public class App {
 
         // printMap(map);
         System.out.println("Part 2: " + resultSet.size());
-    }
-
-    public static boolean linearCheckObstacle(int[][] map, int[] begin, int dir) {
-        boolean withinBounds = true;
-        int[] next = begin;
-
-        System.out.printf("Starting linear check at: %d,%d\n", nextStep(next, dir)[0], nextStep(next, dir)[1]);
-
-        while (withinBounds) {
-            next = nextStep(next, dir);
-
-            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
-                if (map[next[0]][next[1]] == 2) {
-                    System.out.printf("Linear match at : %d,%d\n", next[0], next[1]);
-                    return true;
-                }
-            } else {
-                withinBounds = false;
-            }
-        }
-
-        return false;
-    }
-
-
-    public static boolean linearCheckConnectionToVisited(int[][] map, int[] begin, int dir) {
-        boolean withinBounds = true;
-        int[] next = begin;
-        int[] prev = null;
-
-        while (withinBounds) {
-            next = nextStep(next, dir);
-
-            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
-                if (prev != null && map[next[0]][next[1]] == 2) {
-                    System.out.printf("Obstacle connected : %d,%d\n", prev[0], prev[1]);
-                    return map[prev[0]][prev[1]] == 1;
-                }
-            } else {
-                withinBounds = false;
-            }
-
-            prev = next;
-        }
-
-        return false;
-    }
-
-    public static void runPathsPart2(Set<String> resultSet, int[][] map, int[] pos, int dir) {
-        boolean hasRunOut = false;
-        map[pos[0]][pos[1]] = 1;
-        int[] next;
-
-        while (!hasRunOut) {
-            next = nextStep(pos, dir);
-
-            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
-                int c = map[next[0]][next[1]];
-                if (c == 0) {
-                    pos = next;
-                    map[pos[0]][pos[1]] = 1;
-
-                    if (linearCheckConnectionToVisited(map, pos, dir + 1)) {
-                        int[] blockPos = nextStep(pos, dir);
-                        resultSet.add(String.format("%d,%d", blockPos[0], blockPos[1]));
-                    }
-                } else if (c == 1) {
-                    pos = next;
-
-                    System.out.printf("Previous visited node at: %d,%d\n", pos[0], pos[1]);
-                    // update dir and check
-                    if (linearCheckObstacle(map, pos, dir + 1)) {
-                        int[] blockPos = nextStep(pos, dir);
-                        resultSet.add(String.format("%d,%d", blockPos[0], blockPos[1]));
-                    }
-                } else if (c == 2) {
-                    dir++;
-                }
-            } else {
-                hasRunOut = true;
-            }
-
-        }
     }
 
     public static void runPaths(int[][] map, int[] pos, int dir) {
@@ -155,6 +80,7 @@ public class App {
                 if (c < 2) {
                     pos = next;
                     map[pos[0]][pos[1]] = 1;
+                    VISITED.add(formatCell(pos, dir));
                 } else if (c == 2) {
                     dir++;
                 }
@@ -163,6 +89,83 @@ public class App {
             }
 
         }
+    }
+
+    public static void runPathsPart2(Set<String> resultSet, int[][] map, int[] pos, int dir, Set<String> visited) {
+        boolean hasRunOut = false;
+        visited.add(formatCell(pos, dir));
+        int[] next;
+
+        while (!hasRunOut) {
+
+            next = nextStep(pos, dir);
+
+            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
+                int c = map[next[0]][next[1]];
+                if (c != 2) {
+                    pos = next;
+                    map[pos[0]][pos[1]] = 1;
+                    visited.add(formatCell(pos, dir));
+
+                    if (pos[0] == 2 && pos[1] == 2) {
+                        System.out.println();
+                    }
+
+                    if (runUntilVisitedOrExit(map, pos, dir, visited)) {
+                        int[] block = nextStep(pos, dir);
+                        resultSet.add(String.format("%d,%d", block[0], block[1]));
+                    }
+                } else {
+                    dir++;
+                }
+            } else {
+                hasRunOut = true;
+            }
+        }
+    }
+
+    // 6, 4
+    public static boolean runUntilVisitedOrExit(int[][] map, int[] pos, int dir, Set<String> visited) {
+        int[] block = nextStep(pos, dir);
+        if (!isWithinBounds(map.length, map[0].length, block[0], block[1])) return false;
+        if (map[block[0]][block[1]] == 2) return false;
+        if (map[block[0]][block[1]] < 2) return false;
+
+        int i = 0;
+        int[][] mapCopy = deepCopy(map);
+        mapCopy[block[0]][block[1]] = 2;
+        Set<String> visitedCopy = new HashSet<>(Set.copyOf(visited));
+        boolean hasRunOut = false;
+        int[] cur = pos.clone();
+        int[] next;
+
+        while (!hasRunOut && i < 4758) {
+            next = nextStep(cur, dir);
+
+            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
+                if (visitedCopy.contains(formatCell(next, dir))) {
+                    return true;
+                }
+
+                int c = mapCopy[next[0]][next[1]];
+                if (c < 2) {
+                    cur = next;
+                    mapCopy[cur[0]][cur[1]] = 1;
+                    visitedCopy.add(formatCell(cur, dir));
+                } else if (c == 2) {
+                    dir++;
+                }
+            } else {
+                hasRunOut = true;
+            }
+            i++;
+        }
+
+        return false;
+    }
+
+    public static String formatCell(int[] pos, int dir) {
+        return String.format("%d,%d,%d", pos[0], pos[1], dir % 4);
     }
 
     public static int[] nextStep(int[] pos, int dir) {
@@ -225,6 +228,18 @@ public class App {
             }
             System.out.println();
         }
+    }
+
+    public static int[][] deepCopy(int[][] arr) {
+        int[][] copy = new int[arr.length][arr[0].length];
+
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr[i].length; j++) {
+                copy[i][j] = arr[i][j];
+            }
+        }
+
+        return copy;
     }
 
     public static List<String> readFile() {
