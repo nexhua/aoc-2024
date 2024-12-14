@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 public class App {
-    public static final String FILE_NAME = "sample2.txt";
+    public static final String FILE_NAME = "input.txt";
 
     public static Set<String> VISITED = new HashSet<>();
     public static int[][] MAP;
@@ -129,9 +129,8 @@ public class App {
         int[] block = nextStep(pos, dir);
         if (!isWithinBounds(map.length, map[0].length, block[0], block[1])) return false;
         if (map[block[0]][block[1]] == 2) return false;
-        if (map[block[0]][block[1]] < 2) return false;
+        if (map[block[0]][block[1]] == 1) return false;
 
-        int i = 0;
         int[][] mapCopy = deepCopy(map);
         mapCopy[block[0]][block[1]] = 2;
         Set<String> visitedCopy = new HashSet<>(Set.copyOf(visited));
@@ -139,7 +138,7 @@ public class App {
         int[] cur = pos.clone();
         int[] next;
 
-        while (!hasRunOut && i < 4758) {
+        while (!hasRunOut) {
             next = nextStep(cur, dir);
 
             if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
@@ -158,7 +157,6 @@ public class App {
             } else {
                 hasRunOut = true;
             }
-            i++;
         }
 
         return false;
