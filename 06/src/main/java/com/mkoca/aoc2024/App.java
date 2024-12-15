@@ -12,10 +12,9 @@ import java.util.Set;
 
 public class App {
     public static final String FILE_NAME = "input.txt";
-
     public static Set<String> VISITED = new HashSet<>();
     public static int[][] MAP;
-
+    public static int[] START = new int[2];
 
     public static void main(String[] args) {
         part1();
@@ -30,18 +29,16 @@ public class App {
 
         initMap(map, pos, list);
         runPaths(map, pos, dir);
+        MAP = deepCopy(map);
 
         int res = 0;
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[0].length; j++) {
-                if (map[i][j] == 1) {
+                if (MAP[i][j] == 1) {
                     res++;
                 }
             }
         }
-
-        MAP = deepCopy(map);
-
 
         // printMap(map);
         System.out.println("Part 1: " + res);
@@ -50,21 +47,19 @@ public class App {
     public static void part2() {
         List<String> list = readFile();
         int[][] map = new int[list.size()][list.get(0).length()];
-        int[] pos = {0, 0};
-        int dir = 0;
-        Set<String> resultSet = new HashSet<>();
-        Set<String> visited = new HashSet<>();
-
-        initMap(map, pos, list);
-        runPathsPart2(resultSet, map, pos, dir, visited);
-
-        System.out.println("Results");
-        for (var resultPos : resultSet) {
-            System.out.println(resultPos);
-        }
+        initMap(map, START, list);
 
         // printMap(map);
-        System.out.println("Part 2: " + resultSet.size());
+        int cnt = 0;
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[i].length; j++) {
+                if (runUntilVisitedOrExit(MAP, new int[]{i, j})) {
+                    cnt++;
+                }
+            }
+        }
+
+        System.out.println("Part 2: " + cnt);
     }
 
     public static void runPaths(int[][] map, int[] pos, int dir) {
@@ -80,7 +75,6 @@ public class App {
                 if (c < 2) {
                     pos = next;
                     map[pos[0]][pos[1]] = 1;
-                    VISITED.add(formatCell(pos, dir));
                 } else if (c == 2) {
                     dir++;
                 }
@@ -91,66 +85,33 @@ public class App {
         }
     }
 
-    public static void runPathsPart2(Set<String> resultSet, int[][] map, int[] pos, int dir, Set<String> visited) {
-        boolean hasRunOut = false;
-        visited.add(formatCell(pos, dir));
-        int[] next;
-
-        while (!hasRunOut) {
-
-            next = nextStep(pos, dir);
-
-            if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
-                int c = map[next[0]][next[1]];
-                if (c != 2) {
-                    pos = next;
-                    map[pos[0]][pos[1]] = 1;
-                    visited.add(formatCell(pos, dir));
-
-                    if (pos[0] == 2 && pos[1] == 2) {
-                        System.out.println();
-                    }
-
-                    if (runUntilVisitedOrExit(map, pos, dir, visited)) {
-                        int[] block = nextStep(pos, dir);
-                        resultSet.add(String.format("%d,%d", block[0], block[1]));
-                    }
-                } else {
-                    dir++;
-                }
-            } else {
-                hasRunOut = true;
-            }
-        }
-    }
-
-    // 6, 4
-    public static boolean runUntilVisitedOrExit(int[][] map, int[] pos, int dir, Set<String> visited) {
+    public static boolean runUntilVisitedOrExit(int[][] map, int[] pos) {
+        int dir = 0;
         int[] block = nextStep(pos, dir);
         if (!isWithinBounds(map.length, map[0].length, block[0], block[1])) return false;
-        if (map[block[0]][block[1]] == 2) return false;
-        if (map[block[0]][block[1]] == 1) return false;
+        if (map[block[0]][block[1]] != 1) return false;
 
-        int[][] mapCopy = deepCopy(map);
-        mapCopy[block[0]][block[1]] = 2;
-        Set<String> visitedCopy = new HashSet<>(Set.copyOf(visited));
-        boolean hasRunOut = false;
-        int[] cur = pos.clone();
+        map[block[0]][block[1]] = 2;
+
+        Set<String> visited = new HashSet<>();
+        int[] cur = {START[0], START[1]};
         int[] next;
 
+        boolean hasRunOut = false;
         while (!hasRunOut) {
             next = nextStep(cur, dir);
 
             if (isWithinBounds(map.length, map[0].length, next[0], next[1])) {
-                if (visitedCopy.contains(formatCell(next, dir))) {
+                if (visited.contains(formatCell(next, dir))) {
+                    map[block[0]][block[1]] = 1;
                     return true;
                 }
 
-                int c = mapCopy[next[0]][next[1]];
+                int c = map[next[0]][next[1]];
                 if (c < 2) {
                     cur = next;
-                    mapCopy[cur[0]][cur[1]] = 1;
-                    visitedCopy.add(formatCell(cur, dir));
+                    map[cur[0]][cur[1]] = 1;
+                    visited.add(formatCell(cur, dir));
                 } else if (c == 2) {
                     dir++;
                 }
@@ -159,6 +120,7 @@ public class App {
             }
         }
 
+        map[block[0]][block[1]] = 1;
         return false;
     }
 
