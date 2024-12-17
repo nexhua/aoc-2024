@@ -12,6 +12,7 @@ public class App {
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
 
     public static void part1() {
@@ -34,6 +35,26 @@ public class App {
         System.out.printf("Part 1: %d\n", res);
     }
 
+    public static void part2() {
+        List<String> lines = readFile();
+        final List<Character> operations = List.of('+', '*', '|');
+
+        Long res = 0L;
+        for (var line : lines) {
+            String[] nums = line.split(":");
+            Long target = Long.parseLong(nums[0]);
+            List<Integer> operands = Arrays.stream(nums[1].trim().split(" ")).map(Integer::parseInt).toList();
+
+            if (isTargetReachable(target, operands, operations)) {
+                res += target;
+            }
+
+            // System.out.printf("%d %s\n", target, operands);
+        }
+
+        System.out.printf("Part 2: %d\n", res);
+    }
+
 
     public static boolean isTargetReachable(Long target, List<Integer> operands, List<Character> operations) {
         List<String> operationsList = getOperationList(operations, operands.size() - 1);
@@ -53,6 +74,9 @@ public class App {
                         break;
                     case '*':
                         acc.push(acc.pop() * acc.pop());
+                        break;
+                    case '|':
+                        acc.push(Long.parseLong(String.valueOf(acc.pop()).concat(String.valueOf(acc.pop()))));
                         break;
                     default:
                         System.out.println("ERROR");
