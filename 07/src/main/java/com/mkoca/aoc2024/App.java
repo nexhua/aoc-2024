@@ -17,6 +17,7 @@ public class App {
 
     public static void part1() {
         List<String> lines = readFile();
+        Map<Integer, List<String>> operationsListMap = new HashMap<>();
         final List<Character> operations = List.of('+', '*');
 
         Long res = 0L;
@@ -25,7 +26,7 @@ public class App {
             Long target = Long.parseLong(nums[0]);
             List<Integer> operands = Arrays.stream(nums[1].trim().split(" ")).map(Integer::parseInt).toList();
 
-            if (isTargetReachable(target, operands, operations)) {
+            if (isTargetReachable(operationsListMap, target, operands, operations)) {
                 res += target;
             }
 
@@ -37,6 +38,7 @@ public class App {
 
     public static void part2() {
         List<String> lines = readFile();
+        Map<Integer, List<String>> operationsListMap = new HashMap<>();
         final List<Character> operations = List.of('+', '*', '|');
 
         Long res = 0L;
@@ -45,7 +47,7 @@ public class App {
             Long target = Long.parseLong(nums[0]);
             List<Integer> operands = Arrays.stream(nums[1].trim().split(" ")).map(Integer::parseInt).toList();
 
-            if (isTargetReachable(target, operands, operations)) {
+            if (isTargetReachable(operationsListMap, target, operands, operations)) {
                 res += target;
             }
 
@@ -56,8 +58,8 @@ public class App {
     }
 
 
-    public static boolean isTargetReachable(Long target, List<Integer> operands, List<Character> operations) {
-        List<String> operationsList = getOperationList(operations, operands.size() - 1);
+    public static boolean isTargetReachable(Map<Integer, List<String>> operationsListMap, Long target, List<Integer> operands, List<Character> operations) {
+        List<String> operationsList = getOperationList(operationsListMap, operations, operands.size() - 1);
 
         for (var ops : operationsList) {
             Stack<Long> acc = new Stack<>();
@@ -93,7 +95,18 @@ public class App {
         return false;
     }
 
-    public static List<String> getOperationList(List<Character> operations, int operandCount) {
+    public static List<String> getOperationList(Map<Integer, List<String>> operationsListMap, List<Character> operations, int operandCount) {
+        List<String> found = operationsListMap.get(operandCount);
+        if (found != null) {
+            return found;
+        }
+
+        found = createOperationList(operations, operandCount);
+        operationsListMap.put(operandCount, found);
+        return found;
+    }
+
+    public static List<String> createOperationList(List<Character> operations, int operandCount) {
         List<List<Character>> lists = new ArrayList<>();
         for (int i = 0; i < operandCount; i++) {
             lists.add(operations);
