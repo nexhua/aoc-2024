@@ -17,4 +17,9 @@ public class Cell {
         this.y = y;
         this.c = c;
     }
+
+    public Cell min(Cell cell) {
+        if (this.x + this.y < cell.x + cell.y) return this;
+        return cell;
+    }
 }

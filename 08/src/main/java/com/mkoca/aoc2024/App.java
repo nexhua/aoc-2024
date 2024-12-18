@@ -15,6 +15,7 @@ public class App {
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
 
     public static void part1() {
@@ -36,8 +37,36 @@ public class App {
             }
         }
 
+        int res = 0;
         for (var antennas : antennaMap.values()) {
-            createAnti(antennas, grid);
+            res += createAnti(antennas, grid);
+        }
+        
+        // dumpGrid(grid);
+        System.out.println("Part 1: " + res);
+    }
+
+    public static void part2() {
+        List<String> input = readFile();
+        Cell[][] grid = new Cell[input.size()][input.get(0).length()];
+        Map<Character, List<Cell>> antennaMap = new HashMap<>();
+
+        for (int i = 0; i < input.size(); i++) {
+            String line = input.get(i);
+            for (int j = 0; j < line.length(); j++) {
+                char c = line.charAt(j);
+                if (c == '.') {
+                    grid[i][j] = new Cell(i, j);
+                } else {
+                    Cell cell = new Cell(i, j, c);
+                    grid[i][j] = cell;
+                    upsert(antennaMap, cell);
+                }
+            }
+        }
+
+        for (var antennas : antennaMap.values()) {
+            createAntis(antennas, grid);
         }
 
         int res = 0;
@@ -47,12 +76,17 @@ public class App {
             }
         }
 
+        for (var antennas : antennaMap.values()) {
+            res += (int) antennas.stream().filter(c -> !c.isAnti).count();
+        }
+
         // dumpGrid(grid);
-        System.out.println("Part 1: " + res);
+        System.out.println("Part 2: " + res);
     }
 
 
-    public static void createAnti(List<Cell> antennas, Cell[][] grid) {
+    public static int createAnti(List<Cell> antennas, Cell[][] grid) {
+        int antiCount = 0;
         for (int i = 0; i < antennas.size(); i++) {
             for (int j = 0; j < antennas.size(); j++) {
                 if (i != j) {
@@ -64,7 +98,35 @@ public class App {
 
                     if ((x >= 0 && x < grid.length) && (y >= 0 && y < grid[0].length)) {
                         Cell cell = grid[x][y];
+                        if (!cell.isAnti) antiCount++;
                         cell.isAnti = true;
+                    }
+                }
+            }
+        }
+        return antiCount;
+    }
+
+    public static void createAntis(List<Cell> antennas, Cell[][] grid) {
+        for (int i = 0; i < antennas.size(); i++) {
+            for (int j = 0; j < antennas.size(); j++) {
+                if (i != j) {
+                    Cell a = antennas.get(i);
+                    Cell b = antennas.get(j);
+
+                    int height_diff = b.x - a.x;
+                    int width_diff = b.y - a.y;
+
+                    int x = a.x - height_diff;
+                    int y = a.y - width_diff;
+
+                    while ((x >= 0 && x < grid.length) && (y >= 0 && y < grid[0].length)) {
+                        Cell cell = grid[x][y];
+                        cell.isAnti = true;
+
+                        a = cell;
+                        x = a.x - height_diff;
+                        y = a.y - width_diff;
                     }
                 }
             }
