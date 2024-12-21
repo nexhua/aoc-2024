@@ -7,12 +7,15 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 public class App {
     public static final String FILE_NAME = "input.txt";
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
 
     public static void part1() {
@@ -21,6 +24,86 @@ public class App {
         compactDisk(disk);
         // printDisk(disk);
         System.out.println("Part 1: " + checkSum(disk));
+    }
+
+    public static void part2() {
+        int[] disk = createDisk(readFile().get(0));
+        Map<Integer, Integer> emptyPages = emptyPages(disk);
+        compactDiskByFile(disk, emptyPages);
+
+        // printDisk(disk);
+        System.out.println("Part 2: " + checkSum2(disk));
+    }
+
+    public static void moveFile(int[] disk, int[] file, int start) {
+        int[] tempFile = new int[]{file[0] - file[1] + 1, file[1], file[2]};
+        // move file
+        for (int i = start; i < start + file[1]; i++) {
+            disk[i] = file[2];
+        }
+        // mark empty old file location
+        for (int i = tempFile[0]; i < tempFile[0] + tempFile[1]; i++) {
+            disk[i] = -1;
+        }
+    }
+
+    public static int getEmptyPartition(int left, int len, Map<Integer, Integer> emptyPages) {
+        for (var key : emptyPages.keySet()) {
+            if (key > left) {
+                return -1;
+            }
+
+            if (emptyPages.get(key) >= len) {
+                return key;
+            }
+        }
+
+        return -1;
+    }
+
+    public static void compactDiskByFile(int[] disk, Map<Integer, Integer> emptyPages) {
+        int[] file = {disk.length, 0, -1}; // [start, length, fileId]
+
+        for (int i = disk.length - 1; i >= 0; i--) {
+            if (disk[i] != -1) {
+                file[0] = i; // start
+                file[1] = 0; // length
+                file[2] = disk[i]; // file id
+                while (i >= 0 && disk[i] == file[2]) {
+                    i--;
+                    file[1]++;
+                }
+                i++;
+
+                int key = getEmptyPartition(file[0] - file[1] + 1, file[1], emptyPages);
+
+                if (key != -1) {
+                    int emptyBlockSize = emptyPages.get(key);
+
+                    moveFile(disk, file, key);
+                    emptyPages.remove(key);
+
+                    if (file[1] < emptyBlockSize) {
+                        emptyPages.put(key + file[1], emptyBlockSize - file[1]);
+                    }
+                }
+
+                file = new int[]{i, 0, -1};
+            }
+        }
+    }
+
+    public static Map<Integer, Integer> emptyPages(int[] disk) {
+        Map<Integer, Integer> emptyPageMap = new TreeMap<>();
+        int cur = 0;
+        for (int i = 0; i < disk.length; i++) {
+            cur = i;
+            if (disk[i] == -1) {
+                while (disk[i] == -1) i++;
+                emptyPageMap.put(cur, i - cur);
+            }
+        }
+        return emptyPageMap;
     }
 
     public static long checkSum(int[] disk) {
@@ -32,6 +115,14 @@ public class App {
             res += (long) i * disk[i];
         }
 
+        return res;
+    }
+
+    public static long checkSum2(int[] disk) {
+        long res = 0;
+        for (int i = 0; i < disk.length; i++) {
+            if (disk[i] != -1) res += (long) i * disk[i];
+        }
         return res;
     }
 
@@ -67,10 +158,8 @@ public class App {
         StringBuilder sb = new StringBuilder(disk.length);
 
         for (var elem : disk) {
-            if (elem == -1)
-                sb.append('.');
-            else
-                sb.append(elem);
+            if (elem == -1) sb.append('.');
+            else sb.append(elem);
         }
 
         System.out.println(sb);
