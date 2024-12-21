@@ -13,6 +13,7 @@ public class App {
 
     public static void main(String[] args) {
         part1();
+        part2();
     }
 
     public static void part1() {
@@ -26,13 +27,12 @@ public class App {
             }
         }
 
-        bfs(grid, grid[0][2]);
         Map<Cell, Set<Cell>> trails = new HashMap<>();
 
         for (var row : grid) {
             for (var cell : row) {
                 if (cell.val == 0) {
-                    trails.put(cell, bfs(grid, cell));
+                    trails.put(cell, bfsUnique(grid, cell));
                 }
             }
         }
@@ -46,7 +46,30 @@ public class App {
         System.out.println("Part 1: " + res);
     }
 
-    public static Set<Cell> bfs(Cell[][] grid, Cell start) {
+    public static void part2() {
+        List<String> input = readFile();
+        Cell[][] grid = new Cell[input.size()][input.get(0).length()];
+
+        for (int i = 0; i < grid.length; i++) {
+            String line = input.get(i);
+            for (int j = 0; j < grid[0].length; j++) {
+                grid[i][j] = new Cell(i, j, Character.digit(line.charAt(j), 10));
+            }
+        }
+
+        long res = 0;
+        for (var row : grid) {
+            for (var cell : row) {
+                if (cell.val == 0) {
+                    res += bfs(grid, cell);
+                }
+            }
+        }
+
+        System.out.println("Part 2: " + res);
+    }
+
+    public static Set<Cell> bfsUnique(Cell[][] grid, Cell start) {
         Queue<Cell> queue = new ArrayDeque<>();
         queue.add(start);
 
@@ -59,6 +82,21 @@ public class App {
         }
 
         return reached;
+    }
+
+    public static int bfs(Cell[][] grid, Cell start) {
+        Queue<Cell> queue = new ArrayDeque<>();
+        queue.add(start);
+
+        int cnt = 0;
+
+        while (!queue.isEmpty()) {
+            Cell c = queue.poll();
+            if (c.val == 9) cnt++;
+            if (c.val < 10) getNeighbours(grid, c).stream().filter(n -> n.val - c.val == 1).forEach(queue::add);
+        }
+
+        return cnt;
     }
 
     public static List<Cell> getNeighbours(Cell[][] grid, Cell cell) {
