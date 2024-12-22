@@ -8,7 +8,7 @@ import java.net.URL;
 import java.util.*;
 
 public class App {
-    public static final String FILE_NAME = "sample.txt";
+    public static final String FILE_NAME = "input.txt";
 
     public static void main(String[] args) {
         part1();
@@ -42,7 +42,7 @@ public class App {
 
         Long res = 0L;
         for (var cnt : counter.values()) {
-            if (cnt > 0) res += cnt;
+            res += cnt;
         }
 
         System.out.println("Part 2: " + res);
