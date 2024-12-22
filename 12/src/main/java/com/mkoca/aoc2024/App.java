@@ -5,18 +5,15 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class App {
-    public static final String FILE_NAME = "input.txt";
+    public static final String FILE_NAME = "smol1.txt";
     public static final int[][] DIRECTIONS = new int[][]{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}; // UP, RIGHT, DOWN, LEFT
 
     public static void main(String[] args) {
         part1();
-        // part2();
+        part2();
     }
 
     public static void part1() {
@@ -33,7 +30,62 @@ public class App {
     }
 
     public static void part2() {
+        Cell[][] grid = createGrid(readFile());
+        printGrid(grid);
+        List<Group> groups = createGroups(grid);
 
+        int res = 0;
+        for (var group : groups) {
+            res += calculatePriceUnique(grid, group);
+        }
+
+        System.out.println("Part 2: " + res);
+    }
+
+    // UP, RIGHT, DOWN, LEFT
+    // 0 , 1    , 2   , 3
+    public static int calculatePriceUnique(Cell[][] grid, Group group) {
+        Set<String> sides = new HashSet<>();
+        int perimeter = 0;
+        for (var c : group.cells) {
+            if (c.x == 1 && c.y == 0) {
+                System.out.println();
+            }
+
+            for (int dir = 0; dir < DIRECTIONS.length; dir++) {
+                int[] cdir = DIRECTIONS[dir];
+                int x = c.x + cdir[0];
+                int y = c.y + cdir[1];
+                int axis = (cdir[0] == 1 || cdir[0] == -1) ? 1 : 0; // If direction is UP or DOWN, axis is 1 meaning its on axis-y
+                if ((0 <= x && x < grid.length) && (0 <= y && y < grid[0].length)) {
+                    // neighbour exists
+                    Cell n = grid[x][y];
+                    if (c.c != n.c) {
+                        if (axis == 1) {
+                            sides.add(String.format("[%d,%d]", c.x, dir));
+                            perimeter++;
+                        } else {
+                            perimeter++;
+                            sides.add(String.format("[%d,%d", c.y, dir));
+
+                        }
+                    }
+                } else {
+                    // outbound
+                    if (axis == 1) {
+                        perimeter++;
+                        sides.add(String.format("[%d,%d]", c.x, dir));
+                    } else {
+                        perimeter++;
+                        sides.add(String.format("[%d,%d]", c.y, dir));
+                    }
+                }
+            }
+        }
+
+        System.out.println(sides);
+        System.out.printf("%c -> %d * %d = %d ||| P: %d\n", group.type, sides.size(), group.cells.size(), sides.size() * group.cells.size(), perimeter);
+        return sides.size() * group.cells.size();
     }
 
     public static int calculatePrice(Cell[][] grid, Group group) {
@@ -60,7 +112,6 @@ public class App {
 
                     Group group = new Group(cell.c);
                     group.add(cell);
-
 
                     while (!queue.isEmpty()) {
                         Cell c = queue.poll();
