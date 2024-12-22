@@ -50,10 +50,6 @@ public class App {
 
 
     public static int[] getStep(int n, Map<Integer, int[]> c) {
-        if (n == 4048) {
-            System.out.print("");
-        }
-
         int[] res = c.get(n);
         if (res != null) {
             return res;
@@ -82,21 +78,14 @@ public class App {
 
     public static Map<Integer, Integer> step(Map<Integer, Integer> counter, Map<Integer, int[]> stepCache) {
         Map<Integer, Integer> newCounter = new HashMap<>();
-
         for (var key : counter.keySet()) {
-            long cnt = counter.get(key);
-
-            if (cnt <= 0) {
-                continue;
-            }
+            int cnt = counter.get(key);
 
             int[] res = getStep(key, stepCache);
-            for (int i = 0; i < cnt; i++) {
-                if (res.length == 2) {
-                    newCounter.put(res[1], newCounter.getOrDefault(res[1], 0) + 1);
-                }
-                newCounter.put(res[0], newCounter.getOrDefault(res[0], 0) + 1);
+            if (res.length == 2) {
+                newCounter.put(res[1], newCounter.getOrDefault(res[1], 0) + cnt);
             }
+            newCounter.put(res[0], newCounter.getOrDefault(res[0], 0) + cnt);
         }
 
         return newCounter;
