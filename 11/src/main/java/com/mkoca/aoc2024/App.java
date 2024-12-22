@@ -28,19 +28,19 @@ public class App {
 
     public static void part2() {
         List<String> input = readFile();
-        List<Integer> stones = Arrays.stream(input.getFirst().split(" ")).map(Integer::parseInt).toList();
-        Map<Integer, Integer> counter = new HashMap<>();
-        Map<Integer, int[]> stepCache = new HashMap<>();
+        List<Long> stones = Arrays.stream(input.getFirst().split(" ")).map(Long::parseLong).toList();
+        Map<Long, Long> counter = new HashMap<>();
+        Map<Long, long[]> stepCache = new HashMap<>();
 
         for (var stone : stones) {
-            counter.put(stone, counter.getOrDefault(stone, 0) + 1);
+            counter.put(stone, counter.getOrDefault(stone, 0L) + 1);
         }
 
         for (int i = 0; i < 75; i++) {
             counter = step(counter, stepCache);
         }
 
-        long res = 0;
+        Long res = 0L;
         for (var cnt : counter.values()) {
             if (cnt > 0) res += cnt;
         }
@@ -49,43 +49,43 @@ public class App {
     }
 
 
-    public static int[] getStep(int n, Map<Integer, int[]> c) {
-        int[] res = c.get(n);
+    public static long[] getStep(long n, Map<Long, long[]> c) {
+        long[] res = c.get(n);
         if (res != null) {
             return res;
         }
 
         if (n == 0) {
-            res = new int[]{1};
+            res = new long[]{1L};
             c.put(n, res);
             return res;
         }
 
-        String s = String.valueOf(n);
+        String s = Long.toUnsignedString(n);
         if (s.length() % 2 == 0) {
             String leftS = s.substring(0, s.length() / 2);
-            String rightS = String.valueOf(Integer.parseInt(s.substring(s.length() / 2)));
+            String rightS = s.substring(s.length() / 2);
 
-            res = new int[]{Integer.parseInt(leftS), Integer.parseInt(rightS)};
+            res = new long[]{Long.parseUnsignedLong(leftS), Long.parseUnsignedLong(rightS)};
             c.put(n, res);
             return res;
         }
 
-        res = new int[]{2024 * n};
+        res = new long[]{2024L * n};
         c.put(n, res);
         return res;
     }
 
-    public static Map<Integer, Integer> step(Map<Integer, Integer> counter, Map<Integer, int[]> stepCache) {
-        Map<Integer, Integer> newCounter = new HashMap<>();
+    public static Map<Long, Long> step(Map<Long, Long> counter, Map<Long, long[]> stepCache) {
+        Map<Long, Long> newCounter = new HashMap<>();
         for (var key : counter.keySet()) {
-            int cnt = counter.get(key);
+            long cnt = counter.get(key);
 
-            int[] res = getStep(key, stepCache);
+            long[] res = getStep(key, stepCache);
             if (res.length == 2) {
-                newCounter.put(res[1], newCounter.getOrDefault(res[1], 0) + cnt);
+                newCounter.put(res[1], newCounter.getOrDefault(res[1], 0L) + cnt);
             }
-            newCounter.put(res[0], newCounter.getOrDefault(res[0], 0) + cnt);
+            newCounter.put(res[0], newCounter.getOrDefault(res[0], 0L) + cnt);
         }
 
         return newCounter;
