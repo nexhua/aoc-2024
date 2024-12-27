@@ -8,7 +8,7 @@ import java.net.URL;
 import java.util.*;
 
 public class App {
-    public static final String FILE_NAME = "smol1.txt";
+    public static final String FILE_NAME = "input.txt";
     public static final int[][] DIRECTIONS = new int[][]{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}; // UP, RIGHT, DOWN, LEFT
 
     public static void main(String[] args) {
@@ -18,7 +18,7 @@ public class App {
 
     public static void part1() {
         Cell[][] grid = createGrid(readFile());
-        List<Group> groups = createGroups(grid);
+        List<Group> groups = bfs(grid);
 
         int res = 0;
         for (var group : groups) {
@@ -31,61 +31,50 @@ public class App {
 
     public static void part2() {
         Cell[][] grid = createGrid(readFile());
-        printGrid(grid);
-        List<Group> groups = createGroups(grid);
+        List<Group> groups = bfs(grid);
 
         int res = 0;
         for (var group : groups) {
             res += calculatePriceUnique(grid, group);
         }
 
+        // printGrid(grid);
         System.out.println("Part 2: " + res);
     }
 
     // UP, RIGHT, DOWN, LEFT
     // 0 , 1    , 2   , 3
     public static int calculatePriceUnique(Cell[][] grid, Group group) {
-        Set<String> sides = new HashSet<>();
-        int perimeter = 0;
-        for (var c : group.cells) {
-            if (c.x == 1 && c.y == 0) {
-                System.out.println();
-            }
+        int cornerCount = 0;
+        int i = 0;
+        for (var cell : group.cells.stream().sorted(Comparator.comparingInt(c -> c.x * grid[0].length + c.y)).toList()) {
+            for (var vert : List.of(DIRECTIONS[0], DIRECTIONS[2])) {
+                for (var hori : List.of(DIRECTIONS[1], DIRECTIONS[3])) {
+                    Cell a = getCell(grid, cell, vert);
+                    Cell b = getCell(grid, cell, hori);
+                    Cell diag = getCell(grid, cell, new int[]{vert[0] + hori[0], vert[1] + hori[1]});
 
-            for (int dir = 0; dir < DIRECTIONS.length; dir++) {
-                int[] cdir = DIRECTIONS[dir];
-                int x = c.x + cdir[0];
-                int y = c.y + cdir[1];
-                int axis = (cdir[0] == 1 || cdir[0] == -1) ? 1 : 0; // If direction is UP or DOWN, axis is 1 meaning its on axis-y
-                if ((0 <= x && x < grid.length) && (0 <= y && y < grid[0].length)) {
-                    // neighbour exists
-                    Cell n = grid[x][y];
-                    if (c.c != n.c) {
-                        if (axis == 1) {
-                            sides.add(String.format("[%d,%d]", c.x, dir));
-                            perimeter++;
-                        } else {
-                            perimeter++;
-                            sides.add(String.format("[%d,%d", c.y, dir));
-
-                        }
+                    if ((a == null || a.c != cell.c) && (b == null || b.c != cell.c)) {
+                        cornerCount++;
                     }
-                } else {
-                    // outbound
-                    if (axis == 1) {
-                        perimeter++;
-                        sides.add(String.format("[%d,%d]", c.x, dir));
-                    } else {
-                        perimeter++;
-                        sides.add(String.format("[%d,%d]", c.y, dir));
+
+                    if ((a != null && a.c == cell.c) && (b != null && b.c == cell.c) && (diag != null && diag.c != cell.c)) {
+                        cornerCount++;
                     }
                 }
+
             }
         }
 
-        System.out.println(sides);
-        System.out.printf("%c -> %d * %d = %d ||| P: %d\n", group.type, sides.size(), group.cells.size(), sides.size() * group.cells.size(), perimeter);
-        return sides.size() * group.cells.size();
+        return cornerCount * group.cells.size();
+    }
+
+    public static Cell getCell(Cell[][] grid, Cell cell, int[] dir) {
+        int x = cell.x + dir[0];
+        int y = cell.y + dir[1];
+        if ((0 <= x && x < grid.length) && (0 <= y && y < grid[0].length)) return grid[x][y];
+
+        return null;
     }
 
     public static int calculatePrice(Cell[][] grid, Group group) {
@@ -99,7 +88,7 @@ public class App {
         return perimeter * group.cells.size();
     }
 
-    public static List<Group> createGroups(Cell[][] grid) {
+    public static List<Group> bfs(Cell[][] grid) {
         List<Group> groups = new ArrayList<>();
 
         for (int i = 0; i < grid.length; i++) {
