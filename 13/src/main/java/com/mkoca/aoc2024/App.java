@@ -13,7 +13,7 @@ class Game {
     public Coin a;
     public Coin b;
     public Coin target;
-    public int tokenCount;
+    public long tokenCount;
 
     public Game(Coin a, Coin b, Coin target) {
         this.a = a;
@@ -24,16 +24,16 @@ class Game {
 
     @Override
     public String toString() {
-        return String.format("A: %s\nB: %s\nPrize: %s\n", a, b, target);
+        return String.format("A: %s\nB: %s\nPrize: %s", a, b, target);
     }
 }
 
 class Coin {
-    public int x;
-    public int y;
-    public int cost;
+    public long x;
+    public long y;
+    public long cost;
 
-    public Coin(int x, int y, int cost) {
+    public Coin(long x, long y, long cost) {
         this.x = x;
         this.y = y;
         this.cost = cost;
@@ -47,11 +47,11 @@ class Coin {
 }
 
 public class App {
-    public static final String FILE_NAME = "input.txt";
+    public static final String FILE_NAME = "sample.txt";
 
     public static void main(String[] args) {
         part1();
-        // part2();
+        part2();
     }
 
     public static void part1() {
@@ -61,8 +61,8 @@ public class App {
             int overshoot = (int) Math.min(Math.floor((double) game.target.x / game.b.x), Math.floor((double) game.target.y / game.b.y));
             for (int bCount = overshoot; bCount > 0; bCount--) {
                 for (int aCount = 1; aCount < 101; aCount++) {
-                    int xDiff = game.target.x - (bCount * game.b.x + aCount * game.a.x);
-                    int yDiff = game.target.y - (bCount * game.b.y + aCount * game.a.y);
+                    long xDiff = game.target.x - (bCount * game.b.x + aCount * game.a.x);
+                    long yDiff = game.target.y - (bCount * game.b.y + aCount * game.a.y);
 
                     if (xDiff < 0 || yDiff < 0) {
                         break;
@@ -76,11 +76,46 @@ public class App {
             }
         }
 
-        System.out.println("Part 1: " + games.stream().map(g -> g.tokenCount).reduce(0, Integer::sum));
+        System.out.println("Part 1: " + games.stream().map(g -> g.tokenCount).reduce(0L, Long::sum));
     }
 
     public static void part2() {
+        List<Game> games = getGames(readFile());
+        for (var game : games) {
 
+            // check if slopes are same, if it is there would be no solution
+            double slopeEq1 = -1 * (double) game.a.x / (double) game.b.x;
+            double slopeEq2 = -1 * (double) game.a.y / (double) game.b.y;
+            if (slopeEq1 == slopeEq2) {
+                System.out.println("No solution!");
+                game.tokenCount = 0;
+                continue;
+            }
+
+            game.target.x += 10000000000000L;
+            game.target.y += 10000000000000L;
+
+            // equation 1 => A.x * alpha + B.x * beta = T.x
+            // equation 2 => A.y * alpha + B.y * beta = T.y
+            // solve for beta
+            // beta = eq1 / A.x *
+
+            long tt = game.target.y - (game.target.x * game.a.y / game.a.x);
+            long beta = tt * game.a.x / (game.a.x * game.b.y - game.b.x * game.a.y);
+            long alpha = (game.target.x - game.b.x * beta) / game.a.x;
+
+            System.out.println(game);
+            System.out.println("Alpha : " + alpha);
+            System.out.println("Beta  : " + beta);
+
+            if ((game.target.x - (game.a.x * alpha + game.b.x * beta) == 0) && (game.target.y - (game.a.y * alpha + game.b.y * beta) == 0)) {
+                System.out.println("Solution exists");
+                game.tokenCount = alpha * game.a.cost + beta * game.b.cost;
+            }
+            System.out.println();
+        }
+
+        System.out.println("Part 2: " + games.stream().map(g -> g.tokenCount).reduce(0L, Long::sum));
     }
 
     public static List<Game> getGames(List<String> input) {
