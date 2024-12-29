@@ -47,7 +47,7 @@ class Coin {
 }
 
 public class App {
-    public static final String FILE_NAME = "sample.txt";
+    public static final String FILE_NAME = "input.txt";
 
     public static void main(String[] args) {
         part1();
@@ -81,7 +81,9 @@ public class App {
 
     public static void part2() {
         List<Game> games = getGames(readFile());
+        int i = 0;
         for (var game : games) {
+            i++;
 
             // check if slopes are same, if it is there would be no solution
             double slopeEq1 = -1 * (double) game.a.x / (double) game.b.x;
@@ -100,22 +102,37 @@ public class App {
             // solve for beta
             // beta = eq1 / A.x *
 
-            long tt = game.target.y - (game.target.x * game.a.y / game.a.x);
-            long beta = tt * game.a.x / (game.a.x * game.b.y - game.b.x * game.a.y);
-            long alpha = (game.target.x - game.b.x * beta) / game.a.x;
+            double tt = (double) game.target.y - ((double) game.target.x * (double) game.a.y / (double) game.a.x);
+            double beta_d = tt * (double) game.a.x / ((double) (game.a.x * game.b.y - game.b.x * game.a.y));
+            double alpha_d = ((double) game.target.x - (double) game.b.x * beta_d) / (double) game.a.x;
 
-            System.out.println(game);
-            System.out.println("Alpha : " + alpha);
-            System.out.println("Beta  : " + beta);
+            long alpha = (long) alpha_d;
+            long beta = (long) beta_d;
 
-            if ((game.target.x - (game.a.x * alpha + game.b.x * beta) == 0) && (game.target.y - (game.a.y * alpha + game.b.y * beta) == 0)) {
-                System.out.println("Solution exists");
-                game.tokenCount = alpha * game.a.cost + beta * game.b.cost;
+            // System.out.println("Alpha : " + alpha);
+            // System.out.println("Beta  : " + beta);
+
+            if ((game.target.x == (game.a.x * alpha + game.b.x * beta)) && (game.target.y == (game.a.y * alpha + game.b.y * beta))) {
+                System.out.printf("Game %3d: ✓\n", i);
+                // System.out.println("Solution exists");
+                // System.out.println(game);
+                if (alpha_d - (double) alpha == 0d && beta_d - (double) beta == 0) {
+                    if (alpha < 0L || beta < 0L) System.out.println("NEGATIVE");
+                    game.tokenCount = alpha * game.a.cost + beta * game.b.cost;
+                }
+            } else {
+                System.out.printf("Game %3d: ✕\n", i);
             }
-            System.out.println();
         }
 
-        System.out.println("Part 2: " + games.stream().map(g -> g.tokenCount).reduce(0L, Long::sum));
+        long res = 0L;
+        for (i = 0; i < games.size(); i++) {
+            Game game = games.get(i);
+            long prev = res;
+            if (game.tokenCount != 0L) res += game.tokenCount;
+            if (res - prev < 0L) System.out.println("ERROR");
+        }
+        System.out.println("Part 2: " + res);
     }
 
     public static List<Game> getGames(List<String> input) {
