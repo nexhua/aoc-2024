@@ -1,5 +1,7 @@
 package com.mkoca.aoc2024;
 
+import org.apache.commons.math4.legacy.linear.*;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -81,58 +83,38 @@ public class App {
 
     public static void part2() {
         List<Game> games = getGames(readFile());
-        int i = 0;
         for (var game : games) {
-            i++;
-
-            // check if slopes are same, if it is there would be no solution
-            double slopeEq1 = -1 * (double) game.a.x / (double) game.b.x;
-            double slopeEq2 = -1 * (double) game.a.y / (double) game.b.y;
-            if (slopeEq1 == slopeEq2) {
-                System.out.println("No solution!");
-                game.tokenCount = 0;
-                continue;
-            }
-
             game.target.x += 10000000000000L;
             game.target.y += 10000000000000L;
 
-            // equation 1 => A.x * alpha + B.x * beta = T.x
-            // equation 2 => A.y * alpha + B.y * beta = T.y
-            // solve for beta
-            // beta = eq1 / A.x *
+            // A . X = B
+            // A is the coefficient matrix
+            // X is variable matrix
+            // B is result matrix
 
-            double tt = (double) game.target.y - ((double) game.target.x * (double) game.a.y / (double) game.a.x);
-            double beta_d = tt * (double) game.a.x / ((double) (game.a.x * game.b.y - game.b.x * game.a.y));
-            double alpha_d = ((double) game.target.x - (double) game.b.x * beta_d) / (double) game.a.x;
+            // X = B . inverse(A)
+            // inverse(A) = 1 / |A| . A'
+            // |A| is determinant of A
+            // A' is adjoint of A
 
-            long alpha = (long) alpha_d;
-            long beta = (long) beta_d;
+            RealMatrix coefficients = new Array2DRowRealMatrix(new double[][]{{game.a.x, game.b.x}, {game.a.y, game.b.y}}, false);
+            RealVector constants = new ArrayRealVector(new double[]{game.target.x, game.target.y}, false);
 
-            // System.out.println("Alpha : " + alpha);
-            // System.out.println("Beta  : " + beta);
+            DecompositionSolver solver = new LUDecomposition(coefficients).getSolver();
+            RealVector solution = solver.solve(constants);
 
-            if ((game.target.x == (game.a.x * alpha + game.b.x * beta)) && (game.target.y == (game.a.y * alpha + game.b.y * beta))) {
-                System.out.printf("Game %3d: ✓\n", i);
-                // System.out.println("Solution exists");
-                // System.out.println(game);
-                if (alpha_d - (double) alpha == 0d && beta_d - (double) beta == 0) {
-                    if (alpha < 0L || beta < 0L) System.out.println("NEGATIVE");
-                    game.tokenCount = alpha * game.a.cost + beta * game.b.cost;
-                }
-            } else {
-                System.out.printf("Game %3d: ✕\n", i);
+            long alpha = Math.round(solution.getEntry(0));
+            long beta = Math.round(solution.getEntry(1));
+
+            long xDiff = game.target.x - (alpha * game.a.x + beta * game.b.x);
+            long yDiff = game.target.y - (alpha * game.a.y + beta * game.b.y);
+
+            if (xDiff == 0L && yDiff == 0L) {
+                game.tokenCount = alpha * 3L + beta;
             }
         }
 
-        long res = 0L;
-        for (i = 0; i < games.size(); i++) {
-            Game game = games.get(i);
-            long prev = res;
-            if (game.tokenCount != 0L) res += game.tokenCount;
-            if (res - prev < 0L) System.out.println("ERROR");
-        }
-        System.out.println("Part 2: " + res);
+        System.out.println("Part 2: " + games.stream().map(g -> g.tokenCount).reduce(0L, Long::sum));
     }
 
     public static List<Game> getGames(List<String> input) {
