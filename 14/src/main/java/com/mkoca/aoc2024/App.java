@@ -7,54 +7,108 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.IntStream;
 
 public class App {
-    public static final String FILE_NAME = "input.txt";
+    public static final String FILE_NAME = "sampleTree.txt";
 
     static int ROW_SIZE;
     static int COL_SIZE;
+    static int VERTICAL_MIDDLE;
+
 
     static {
-        if (FILE_NAME.equals("sample.txt")) {
+        if (FILE_NAME.startsWith("sample")) {
             COL_SIZE = 11;
             ROW_SIZE = 7;
+            VERTICAL_MIDDLE = COL_SIZE / 2;
         } else {
             COL_SIZE = 101;
             ROW_SIZE = 103;
+            VERTICAL_MIDDLE = COL_SIZE / 2;
         }
     }
 
     public static void main(String[] args) {
         part1();
-        // part2();
+        part2();
     }
 
     public static void part1() {
         List<Robot> robots = getRobots(readFile());
         for (var r : robots) {
-            for (int i = 0; i < 100; i++) {
-                // X is for column, Y is for row
-                r.c.x += r.v.x;
-                r.c.y += r.v.y;
+            // X is for column, Y is for row
+            for (int i = 0; i < 100; i++) step(r);
+        }
 
-                if (r.c.x < 0) {
-                    r.c.x = COL_SIZE + r.c.x;
-                } else {
-                    r.c.x %= COL_SIZE;
-                }
+        // printMap(createMap(robots));
+        long res = getResults(robots);
+        System.out.println("Part 1: " + res);
+    }
 
-                if (r.c.y < 0) {
-                    r.c.y = ROW_SIZE + r.c.y;
-                } else {
-                    r.c.y %= ROW_SIZE;
+
+    public static void part2() {
+        List<Robot> robots = getRobots(readFile());
+        boolean treeFound = false;
+
+        long sec = 0;
+        while (!treeFound) {
+            for (var r : robots) step(r);
+
+            // check
+            // to detect christmas tree, split in the middle vertically and check if EVERY point (that is not on the vertical line) is equidistant to the vertical middle line
+            treeFound = areAllEquidistant(robots);
+            sec++;
+
+            if(sec % 1_000_000L == 0) System.out.println(sec);
+        }
+
+        // printMap(createMap(robots));
+        System.out.println("Part 2: " + sec);
+    }
+
+    static boolean areAllEquidistant(List<Robot> robots) {
+        int[][] map = createMap(robots);
+
+        int highestRobotRow = IntStream.range(0, ROW_SIZE).filter(i -> map[i][VERTICAL_MIDDLE] != 0).findFirst().orElse(-1);
+
+        if(highestRobotRow == -1) {
+            return false;
+        }
+
+        // if highest robot exits, check if every other robot is below it
+        int maxRow = robots.stream().filter(r -> !(r.c.x == VERTICAL_MIDDLE && r.c.y == highestRobotRow)).map(r -> r.c.y).min(Integer::compare).orElseThrow();
+
+        if (maxRow <= highestRobotRow) {
+            return false;
+        }
+
+        for (int i = highestRobotRow; i < ROW_SIZE; i++) {
+            boolean rowEq = isRowEquidistant(map[i]);
+
+            if (!rowEq) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static boolean isRowEquidistant(int[] row) {
+
+        for (int i = 0; i < COL_SIZE; i++) {
+            if (i != VERTICAL_MIDDLE && row[i] != 0) {
+                int diff = VERTICAL_MIDDLE - i;
+
+                if (row[VERTICAL_MIDDLE + diff] == 0) {
+                    return false;
                 }
             }
         }
 
-        //printMap(createMap(robots));
-        long res = getResults(robots);
-        System.out.println("Part 1: " + res);
+        return true;
     }
+
 
     static long getResults(List<Robot> robots) {
         long res = 1;
@@ -85,8 +139,21 @@ public class App {
         return res;
     }
 
-    public static void part2() {
+    static void step(Robot r) {
+        r.c.x += r.v.x;
+        r.c.y += r.v.y;
 
+        if (r.c.x < 0) {
+            r.c.x = COL_SIZE + r.c.x;
+        } else {
+            r.c.x %= COL_SIZE;
+        }
+
+        if (r.c.y < 0) {
+            r.c.y = ROW_SIZE + r.c.y;
+        } else {
+            r.c.y %= ROW_SIZE;
+        }
     }
 
     static int[][] createMap(List<Robot> robots) {
@@ -167,7 +234,7 @@ class Robot {
 
     @Override
     public String toString() {
-        return String.format("p=%s v=%s", s, v);
+        return String.format("p=%s v=%s c=%s", s, v, c);
     }
 }
 
