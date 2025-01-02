@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class App {
-    public static final String FILE_NAME = "sample.txt";
+    public static final String FILE_NAME = "input.txt";
     public static final int[][] DIRECTIONS = new int[][]{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}; // UP, RIGHT, DOWN, LEFT
 
     public static void main(String[] args) {
@@ -56,7 +56,6 @@ public class App {
             }
         }
 
-        // printMap(map, pos);
         System.out.println("Part 1: " + res);
     }
 
@@ -67,14 +66,8 @@ public class App {
         String moves = String.join("", input.subList(IntStream.range(0, input.size() - 1).filter(i -> input.get(i).isBlank()).findFirst().orElseThrow() + 1, input.size()));
 
         int[] pos = start.clone();
-
-        System.out.println("Initial state");
-        printMap(map, pos);
-        System.out.println();
-
         for (int i = 0; i < moves.length(); i++) {
 
-            System.out.println("Move " + moves.charAt(i) + ":");
             int[] dir = getDir(moves.charAt(i));
             int[] next = new int[]{pos[0] + dir[0], pos[1] + dir[1]};
 
@@ -111,11 +104,20 @@ public class App {
 
                     if (!rows.isEmpty()) {
                         // get latest row and check if all next is empty
-                        int highestRow = rows.keySet().stream().min(Comparator.comparingInt(Integer::intValue)).orElseThrow();
-
                         boolean nextRowIsAvailable = true;
 
-                        for (var cell : rows.get(highestRow)) {
+                        List<Integer> rowsToMove;
+
+                        if (dir[0] == -1) {
+                            // if vertical and direction is up
+                            rowsToMove = rows.keySet().stream().sorted().toList();
+                        } else {
+                            rowsToMove = rows.keySet().stream().sorted().toList().reversed();
+                        }
+
+                        int latestRow = rowsToMove.getFirst();
+
+                        for (var cell : rows.get(latestRow)) {
                             int[] verticalNext = new int[]{cell[0] + dir[0], cell[1] + dir[1]};
 
                             if (isOutOfBounds(map, verticalNext[0], verticalNext[1])) {
@@ -131,12 +133,11 @@ public class App {
 
                         if (nextRowIsAvailable) {
                             // move everything in rows by one position of dir
-                            System.out.println("moving");
-                            List<Integer> rowsToMove = rows.keySet().stream().sorted().toList();
-
                             for (var row : rowsToMove) {
                                 for (var cell : rows.get(row)) {
                                     int[] nextVertical = new int[]{cell[0] + dir[0], cell[1] + dir[1]};
+                                    assert map[nextVertical[0]][nextVertical[1]] == ':';
+
                                     map[nextVertical[0]][nextVertical[1]] = map[cell[0]][cell[1]];
                                     map[cell[0]][cell[1]] = '.';
                                 }
@@ -148,12 +149,7 @@ public class App {
                     }
                 }
             }
-
-            printMap(map, pos);
-            System.out.println();
         }
-
-        printMap(map, pos);
 
         long res = 0L;
         for (int i = 0; i < map.length; i++) {
@@ -192,7 +188,6 @@ public class App {
             if (isOutOfBounds(map, cur[0], cur[1]) || visited[cur[0]][cur[1]]) continue;
 
             if (map[cur[0]][cur[1]] == '#') {
-                System.out.println("VERTICAL CANT");
                 rows = Collections.emptyMap();
                 break;
             }
@@ -221,7 +216,6 @@ public class App {
             }
         }
 
-        System.out.println("ROW SIZE: " + (Integer) rows.values().stream().map(List::size).mapToInt(Integer::intValue).sum());
         return rows;
     }
 
