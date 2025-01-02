@@ -5,16 +5,20 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
+import java.util.Queue;
 
 public class App {
-    public static final String FILE_NAME = "sampleTree.txt";
+    public static final String FILE_NAME = "input.txt";
 
     static int ROW_SIZE;
     static int COL_SIZE;
     static int VERTICAL_MIDDLE;
+
+    // UP, RIGHT, DOWN, LEFT, UP RIGHT, UP LEFT, DOWN RIGHT, DOWN LEFT
+    public static final int[][] DIRECTIONS = new int[][]{{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {-1, 1}, {-1, 1}, {1, 1}, {1, -1}};
 
 
     static {
@@ -49,64 +53,115 @@ public class App {
 
     public static void part2() {
         List<Robot> robots = getRobots(readFile());
-        boolean treeFound = false;
-
         long sec = 0;
-        while (!treeFound) {
+        while (true) {
             for (var r : robots) step(r);
 
-            // check
+            // approach 1
             // to detect christmas tree, split in the middle vertically and check if EVERY point (that is not on the vertical line) is equidistant to the vertical middle line
-            treeFound = areAllEquidistant(robots);
-            sec++;
+            // this assumed the christmas tree would be centralized (and almost all robots would be used), since this assumption was wrong approach 2 was used
+            // double percentage = getEquidistantPercentage(robots);
+            // if (percentage > 95f) {
+            //     printMap(createMap(robots));
+            //     break;
+            // }
 
-            if(sec % 1_000_000L == 0) System.out.println(sec);
-        }
+            // approach 2
+            // use bfs and group all robots, if a group has more than a threshold value stop the loop
+            List<Integer> groups = bfs(createMap(robots));
 
-        // printMap(createMap(robots));
-        System.out.println("Part 2: " + sec);
-    }
+            int threshold = 229; // started trying random thresholds like 12, 30, 50. At 50 the tree was present, using that dump I found the tree size which is 229 for this input.
 
-    static boolean areAllEquidistant(List<Robot> robots) {
-        int[][] map = createMap(robots);
+            int size = groups.stream().filter(s -> s >= threshold).findFirst().orElse(-1);
 
-        int highestRobotRow = IntStream.range(0, ROW_SIZE).filter(i -> map[i][VERTICAL_MIDDLE] != 0).findFirst().orElse(-1);
-
-        if(highestRobotRow == -1) {
-            return false;
-        }
-
-        // if highest robot exits, check if every other robot is below it
-        int maxRow = robots.stream().filter(r -> !(r.c.x == VERTICAL_MIDDLE && r.c.y == highestRobotRow)).map(r -> r.c.y).min(Integer::compare).orElseThrow();
-
-        if (maxRow <= highestRobotRow) {
-            return false;
-        }
-
-        for (int i = highestRobotRow; i < ROW_SIZE; i++) {
-            boolean rowEq = isRowEquidistant(map[i]);
-
-            if (!rowEq) {
-                return false;
+            if (size != -1) {
+                break;
             }
+
+            sec++;
         }
 
-        return true;
+        System.out.println("Part 2: " + (sec + 1));
+        printMap(createMap(robots));
     }
 
-    static boolean isRowEquidistant(int[] row) {
+    static List<Integer> bfs(int[][] map) {
+        List<Integer> groups = new ArrayList<>();
 
-        for (int i = 0; i < COL_SIZE; i++) {
-            if (i != VERTICAL_MIDDLE && row[i] != 0) {
-                int diff = VERTICAL_MIDDLE - i;
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[0].length; j++) {
 
-                if (row[VERTICAL_MIDDLE + diff] == 0) {
-                    return false;
+                if (map[i][j] != -1 && map[i][j] != 0) {
+                    Queue<int[]> queue = new ArrayDeque<>();
+
+                    int groupSize = 0;
+                    queue.add(new int[]{i, j});
+
+                    while (!queue.isEmpty()) {
+                        int[] cur = queue.poll();
+
+                        if(map[cur[0]][cur[1]] == -1) {
+                            continue;
+                        }
+
+                        groupSize += map[cur[0]][cur[1]];
+                        map[cur[0]][cur[1]] = -1; // visit
+                        queue.addAll(getNeighbours(map, cur));
+                    }
+
+                    groups.add(groupSize);
                 }
             }
         }
 
-        return true;
+        return groups;
+    }
+
+    static List<int[]> getNeighbours(int[][] map, int[] pos) {
+        List<int[]> neighbours = new ArrayList<>();
+
+        for (var dir : DIRECTIONS) {
+            int x = pos[0] + dir[0];
+            int y = pos[1] + dir[1];
+            if ((0 <= x && x < map.length) && (0 <= y && y < map[0].length) && map[x][y] > 0)
+                neighbours.add(new int[]{x, y});
+        }
+        return neighbours;
+    }
+
+    static double getEquidistantPercentage(List<Robot> robots) {
+        int[][] map = createMap(robots);
+
+        int totalRobot = 0;
+        int totalEq = 0;
+
+        for (int i = 0; i < ROW_SIZE; i++) {
+            int[] rowRes = getRowEquidistant(map[i]);
+
+            totalRobot += rowRes[0];
+            totalEq += rowRes[1];
+        }
+
+        return (double) totalEq / (double) totalRobot * 100f;
+    }
+
+    static int[] getRowEquidistant(int[] row) {
+        int equdistantCount = 0;
+        int totalCount = 0;
+
+        for (int i = 0; i < COL_SIZE; i++) {
+            if (i != VERTICAL_MIDDLE && row[i] != 0) {
+                totalCount += row[i];
+                int diff = VERTICAL_MIDDLE - i;
+
+
+                if (row[VERTICAL_MIDDLE + diff] != 0) {
+                    equdistantCount += row[i];
+                }
+            }
+        }
+
+        return new int[]{totalCount, equdistantCount};
     }
 
 
