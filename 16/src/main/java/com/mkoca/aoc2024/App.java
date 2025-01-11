@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Stream;
 
 public class App {
     public static final String FILE_NAME = "input.txt";
@@ -38,24 +39,15 @@ public class App {
         Set<Cell> originalPathSet = new HashSet<>(originalPath);
         Set<Cell> bestSpots = new HashSet<>(Set.copyOf(originalPathSet));
 
-        findBestSpots(map, cells, bestSpots, originalPath, bestSpots);
-        int prevLen = bestSpots.size();
-        while (true) {
-            Set<Cell> newCells = new HashSet<>(Set.copyOf(bestSpots));
-            newCells.removeAll(originalPathSet);
-            findBestSpots(map, cells, bestSpots, newCells.stream().toList(), bestSpots);
-            if (prevLen == bestSpots.size()) break;
-            prevLen = bestSpots.size();
-        }
+        findBestSpots(map, cells, originalPathSet, originalPath, bestSpots);
 
-        // printMap(map, start, end);
-        // printPath(map, originalPath, start, end);
         System.out.println("Part 2: " + bestSpots.size());
+        printAllPath(map, originalPath, start, end, bestSpots);
     }
 
-    public static void findBestSpots(char[][] map, Cell[][] cells, Set<Cell> pathSet, List<Cell> path, Set<Cell> bestSpots) {
-        for (var cell : path) {
-            List<List<Cell>> allAlternatePaths = dfs(map, cells, cell, pathSet);
+    public static void findBestSpots(char[][] map, Cell[][] cells, Set<Cell> pathSet, List<Cell> originalPath, Set<Cell> bestSpots) {
+        for (var cell : originalPath) {
+            List<List<Cell>> allAlternatePaths = bfs(map, cells, new Cell(cell.x, cell.y), pathSet, originalPath);
 
             for (var altPath : allAlternatePaths) {
                 bestSpots.addAll(altPath);
@@ -63,42 +55,40 @@ public class App {
         }
     }
 
-    public static List<List<Cell>> dfs(char[][] map, Cell[][] cells, Cell start, Set<Cell> pathSet) {
-        if (getNeighbours(map, start).stream().map(c -> new Cell(c[0], c[1])).filter(c -> !pathSet.contains(c)).count() == 0) {
+    public static List<List<Cell>> bfs(char[][] map, Cell[][] cells, Cell from, Set<Cell> originalPathSet, List<Cell> originalPath) {
+        if (getNeighbours(map, from).stream().map(c -> new Cell(c[0], c[1])).filter(c -> !originalPathSet.contains(c)).count() == 0) {
             return Collections.emptyList();
         }
 
         List<List<Cell>> allAlternatePaths = new ArrayList<>();
 
-        Stack<Cell> stack = new Stack<>();
-        stack.push(start);
+        Queue<Cell> queue = new ArrayDeque<>();
+        queue.add(from);
 
         Set<Cell> visited = new HashSet<>();
-        Set<Cell> notAllowed = new HashSet<>(getNeighbours(map, start).stream().map(c -> new Cell(c[0], c[1])).filter(pathSet::contains).toList());
+        Set<Cell> notAllowed = new HashSet<>(getNeighbours(map, from).stream().map(c -> new Cell(c[0], c[1])).filter(originalPathSet::contains).toList());
         Map<Cell, List<Cell>> paths = new HashMap<>();
-        paths.put(start, List.of(start));
-        while (!stack.isEmpty()) {
-            Cell cur = stack.pop();
+        paths.put(from, List.of(from));
+        while (!queue.isEmpty()) {
+            Cell cur = queue.poll();
             if (visited.contains(cur)) {
                 continue;
             }
             visited.add(cur);
 
             for (var c : getNeighbours(map, cur).stream().map(c -> new Cell(c[0], c[1])).filter(c -> !notAllowed.contains(c) && !visited.contains(c)).toList()) {
-                if (pathSet.contains(c)) {
-                    long currentCost = cells[start.x][start.y].cost - cells[c.x][c.y].cost;
-                    List<Cell> alternativePath = new ArrayList<>(List.copyOf(paths.get(cur)));
-                    alternativePath.add(c);
-
-                    long alternativeCost = pathCost(alternativePath);
-                    if (alternativeCost == currentCost) {
-                        allAlternatePaths.add(alternativePath);
+                if (originalPathSet.contains(c)) {
+                    if (from.x == 11 && from.y == 3 && c.x == 7 && c.y == 5) {
+                        System.out.println(paths.get(cur));
                     }
 
-                    continue;
+                    List<Cell> alternativePath = comparePaths(cells, from, c, List.copyOf(paths.get(cur)), originalPath);
+                    if (!alternativePath.isEmpty()) {
+                        allAlternatePaths.add(alternativePath);
+                    }
                 }
 
-                stack.add(c);
+                queue.add(c);
                 List<Cell> newPath = new ArrayList<>(List.copyOf(paths.get(cur)));
                 newPath.add(c);
                 paths.put(c, newPath);
@@ -148,24 +138,67 @@ public class App {
         return cells;
     }
 
-    public static long pathCost(List<Cell> path) {
-        long cost = 0L;
-        int prevDir = -1;
-        int dir = -1;
+    public static List<Cell> comparePaths(Cell[][] cells, Cell start, Cell neighbour, List<Cell> subPathSoFar, List<Cell> originalPath) {
+        Cell s, e;
+        if (cells[start.x][start.y].cost > cells[neighbour.x][neighbour.y].cost) {
+            e = cells[start.x][start.y];
+            s = cells[neighbour.x][neighbour.y];
+        } else {
+            e = cells[neighbour.x][neighbour.y];
+            s = cells[start.x][start.y];
+        }
+
+        int startIndex = originalPath.indexOf(s);
+        int endIndex = originalPath.indexOf(e);
+        assert startIndex != -1;
+        assert endIndex != -1;
+
+        List<Cell> alternativePath = new ArrayList<>(subPathSoFar);
+        alternativePath.add(new Cell(neighbour.x, neighbour.y));
+        if (s.equals(neighbour)) {
+            alternativePath = alternativePath.reversed();
+        }
+        updateAlternateRoute(alternativePath, s.withDir, s.from);
+
+        List<Cell> before = List.copyOf(originalPath).subList(0, startIndex);
+        List<Cell> after = List.copyOf(originalPath).subList(endIndex + 1, originalPath.size());
+        List<Cell> alternatedFullPath = Stream.concat(Stream.concat(before.stream(), alternativePath.stream()), after.stream()).toList();
+
+        int[] originalCost = count(originalPath);
+        int[] alternativeCost = count(alternatedFullPath);
+        if (originalCost[0] == alternativeCost[0] && originalCost[1] == alternativeCost[1]) {
+            return alternativePath;
+        }
+        return Collections.emptyList();
+    }
+
+    public static void updateAlternateRoute(List<Cell> alternateSubRoute, int startDir, Cell startFrom) {
+        alternateSubRoute.getFirst().withDir = startDir;
+        alternateSubRoute.getFirst().from = startFrom;
 
 
+        for (int i = 1; i < alternateSubRoute.size(); i++) {
+            Cell prev = alternateSubRoute.get(i - 1);
+            Cell cur = alternateSubRoute.get(i);
+
+            int dir = getNeighbourDir(prev, cur);
+            assert dir != -1;
+
+            cur.withDir = dir;
+            cur.from = prev;
+        }
+    }
+
+    public static int[] count(List<Cell> path) {
+        int[] cost = new int[]{path.size(), 0}; // [length, numberOfTurns]
+        int numberOfTurns = 0;
         for (int i = 1; i < path.size(); i++) {
             Cell prev = path.get(i - 1);
             Cell cur = path.get(i);
 
-            prevDir = dir;
-            dir = getNeighbourDir(prev, cur);
-            if (dir == -1) throw new IllegalArgumentException("DIR can't be -1");
-            if (prevDir == -1) prevDir = dir;
-
-            cost += getCost(prevDir, dir);
+            if (prev.withDir != cur.withDir) numberOfTurns++;
         }
-
+        cost[1] = numberOfTurns;
         return cost;
     }
 
@@ -273,6 +306,51 @@ public class App {
                             System.out.print("ERROR");
                         }
                     }
+                } else {
+                    System.out.print(map[i][j]);
+                }
+            }
+            System.out.println();
+        }
+    }
+
+    public static void printAllPath(char[][] map, List<Cell> path, Cell start, Cell end, Set<Cell> alternates) {
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[i].length; j++) {
+                if (i == start.x && j == start.y) {
+                    System.out.print('S');
+                    continue;
+                }
+
+                if (i == end.x && j == end.y) {
+                    System.out.print('E');
+                    continue;
+                }
+
+                int finalI = i;
+                int finalJ = j;
+                Optional<Cell> cellInPath = path.stream().filter(c -> c.x == finalI && c.y == finalJ).findFirst();
+
+                if (cellInPath.isPresent()) {
+                    Cell c = cellInPath.get();
+                    if (c.cost != Long.MAX_VALUE) {
+                        if (c.withDir == 0) {
+                            System.out.print("^");
+                        } else if (c.withDir == 1) {
+                            System.out.print(">");
+
+                        } else if (c.withDir == 2) {
+                            System.out.print("v");
+
+                        } else if (c.withDir == 3) {
+                            System.out.print("<");
+
+                        } else {
+                            System.out.print("ERROR");
+                        }
+                    }
+                } else if (alternates.contains(new Cell(i, j))) {
+                    System.out.print("○");
                 } else {
                     System.out.print(map[i][j]);
                 }
