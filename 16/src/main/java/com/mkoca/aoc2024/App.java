@@ -12,26 +12,103 @@ public class App {
     public static final int[][] DIRECTIONS = new int[][]{{-1, 0}, {0, 1}, {1, 0}, {0, -1}}; // UP, RIGHT, DOWN, LEFT
 
     public static void main(String[] args) {
-        part1();
-        // part2();
+        Cell[][] distances = part1();
+        part2(distances);
     }
 
-    public static void part1() {
+    public static Cell[][] part1() {
         Cell start = new Cell(0, 0);
         Cell end = new Cell(0, 0);
         char[][] map = createMap(readFile(), start, end);
-        
-        List<Cell> path = dijkstra(map, start, end);
+
+        Cell[][] cells = dijkstra(map, start);
+        List<Cell> path = buildPath(cells[end.x][end.y]);
         // printMap(map, start, end);
         // printPath(map, path, start, end);
         System.out.println("Part 1: " + path.getLast().cost);
+        return cells;
     }
 
-    public static void part2() {
+    public static void part2(Cell[][] cells) {
+        Cell start = new Cell(0, 0);
+        Cell end = new Cell(0, 0);
+        char[][] map = createMap(readFile(), start, end);
 
+        List<Cell> originalPath = buildPath(cells[end.x][end.y]);
+        Set<Cell> originalPathSet = new HashSet<>(originalPath);
+        Set<Cell> bestSpots = new HashSet<>(Set.copyOf(originalPathSet));
+
+        findBestSpots(map, cells, bestSpots, originalPath, bestSpots);
+        int prevLen = bestSpots.size();
+        while (true) {
+            Set<Cell> newCells = new HashSet<>(Set.copyOf(bestSpots));
+            newCells.removeAll(originalPathSet);
+            findBestSpots(map, cells, bestSpots, newCells.stream().toList(), bestSpots);
+            if (prevLen == bestSpots.size()) break;
+            prevLen = bestSpots.size();
+        }
+
+        // printMap(map, start, end);
+        // printPath(map, originalPath, start, end);
+        System.out.println("Part 2: " + bestSpots.size());
     }
 
-    public static List<Cell> dijkstra(char[][] map, Cell from, Cell end) {
+    public static void findBestSpots(char[][] map, Cell[][] cells, Set<Cell> pathSet, List<Cell> path, Set<Cell> bestSpots) {
+        for (var cell : path) {
+            List<List<Cell>> allAlternatePaths = dfs(map, cells, cell, pathSet);
+
+            for (var altPath : allAlternatePaths) {
+                bestSpots.addAll(altPath);
+            }
+        }
+    }
+
+    public static List<List<Cell>> dfs(char[][] map, Cell[][] cells, Cell start, Set<Cell> pathSet) {
+        if (getNeighbours(map, start).stream().map(c -> new Cell(c[0], c[1])).filter(c -> !pathSet.contains(c)).count() == 0) {
+            return Collections.emptyList();
+        }
+
+        List<List<Cell>> allAlternatePaths = new ArrayList<>();
+
+        Stack<Cell> stack = new Stack<>();
+        stack.push(start);
+
+        Set<Cell> visited = new HashSet<>();
+        Set<Cell> notAllowed = new HashSet<>(getNeighbours(map, start).stream().map(c -> new Cell(c[0], c[1])).filter(pathSet::contains).toList());
+        Map<Cell, List<Cell>> paths = new HashMap<>();
+        paths.put(start, List.of(start));
+        while (!stack.isEmpty()) {
+            Cell cur = stack.pop();
+            if (visited.contains(cur)) {
+                continue;
+            }
+            visited.add(cur);
+
+            for (var c : getNeighbours(map, cur).stream().map(c -> new Cell(c[0], c[1])).filter(c -> !notAllowed.contains(c) && !visited.contains(c)).toList()) {
+                if (pathSet.contains(c)) {
+                    long currentCost = cells[start.x][start.y].cost - cells[c.x][c.y].cost;
+                    List<Cell> alternativePath = new ArrayList<>(List.copyOf(paths.get(cur)));
+                    alternativePath.add(c);
+
+                    long alternativeCost = pathCost(alternativePath);
+                    if (alternativeCost == currentCost) {
+                        allAlternatePaths.add(alternativePath);
+                    }
+
+                    continue;
+                }
+
+                stack.add(c);
+                List<Cell> newPath = new ArrayList<>(List.copyOf(paths.get(cur)));
+                newPath.add(c);
+                paths.put(c, newPath);
+            }
+        }
+
+        return allAlternatePaths;
+    }
+
+    public static Cell[][] dijkstra(char[][] map, Cell from) {
         Cell[][] cells = new Cell[map.length][map[0].length];
         Queue<Cell> queue = new ArrayDeque<>();
 
@@ -68,7 +145,39 @@ public class App {
             }
         }
 
-        return buildPath(cells[end.x][end.y]);
+        return cells;
+    }
+
+    public static long pathCost(List<Cell> path) {
+        long cost = 0L;
+        int prevDir = -1;
+        int dir = -1;
+
+
+        for (int i = 1; i < path.size(); i++) {
+            Cell prev = path.get(i - 1);
+            Cell cur = path.get(i);
+
+            prevDir = dir;
+            dir = getNeighbourDir(prev, cur);
+            if (dir == -1) throw new IllegalArgumentException("DIR can't be -1");
+            if (prevDir == -1) prevDir = dir;
+
+            cost += getCost(prevDir, dir);
+        }
+
+        return cost;
+    }
+
+    public static int getNeighbourDir(Cell c, Cell n) {
+        for (int i = 0; i < DIRECTIONS.length; i++) {
+            int x = c.x + DIRECTIONS[i][0];
+            int y = c.y + DIRECTIONS[i][1];
+
+            if (n.x == x && n.y == y) return i;
+        }
+
+        return -1;
     }
 
     public static List<Cell> buildPath(Cell end) {
